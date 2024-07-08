@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+
+    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/custom.css">
+
+    <script>
+        $(document).ready(function () {
+            // HTML 문서를 로드할 때마다 실행합니다.
+            let book_id = document.getElementById('book_id').textContent;
+            getMessage(book_id);
+            isLoan(book_id);
+        })
+
+        function registLoan() {
+            // 1. 작성한 메모를 불러옵니다.
+            // let book_id= id;
+            let book_id = $('#book_id1').val();
+            let member_id = $('#member_id1').val();
+            // 2. 작성한 메모가 올바른지 isValidContents 함수를 통해 확인합니다.
+            // if (isValidContents(contents) == false) {
+            //     return;
+            // }
+            // 3. genRandomName 함수를 통해 익명의 username을 만듭니다.
+            // let username = genRandomName(10);
+
+            // 4. 전달할 data JSON으로 만듭니다.
+            let data = {'book_id': book_id,
+                'member_id': member_id
+            };
+
+            // 5. POST /api/memos 에 data를 전달합니다.
+            $.ajax({
+                type: "POST",
+                url: "/api/loans/add",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    console.log(response);
+                    alert('도서 대출이 성공적으로 되었습니다.');
+                    window.location.reload();
+                },
+                error: function (xhr, status) {
+                    if (xhr.status === 409) {
+                        alert('도서 대출을 할 수 없습니다: ' + xhr.responseText);
+                    } else {
+                        alert('오류가 발생했습니다: ' + xhr.responseText);
+                    }
+                }
+            });
+        }
+
+        function returnBook() {
+            // 1. 작성한 메모를 불러옵니다.
+            // let book_id= id;
+            let book_id = $('#book_id1').val();
+            // let member_id = $('#member_id1').val();
+
+            // 4. 전달할 data JSON으로 만듭니다.
+            let data = {'id': book_id,
+            };
+
+            $.ajax({
+                type: "POST",
+                url: `/api/loans/${book_id}/return`,
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    console.log(response);
+                    alert('도서 반납이 성공적으로 되었습니다.');
+                    window.location.reload();
+                }
+            });
+        }
+
+
+        function isLoan(id) {
+            // 1. 기존 메모 내용을 지웁니다.
+            // $('#modal-footer').empty();
+
+            $.ajax({
+                type: 'GET',
+                url: `../loans/isloan/${id}`,
+                success: function (response) {
+                    console.log(response);
+                    if (response === "대출 가능") {
+                        $('#modal-footer').append(`<button class="btn btn-primary" data-toggle="modal"
+                                                          data-target="#modal">Loan</button>`);
+                    } else if(response === "대출 불가능"){
+                        $('#modal-footer').append(` <button type="button" class="btn btn-danger" onclick="returnBook()">반납하기</button>`)
+                    }
+                }
+            })
+        }
+
+
+        function getMessage(id) {
+            // 1. 기존 메모 내용을 지웁니다.
+            $('#modal-dialog').empty();
+
+            // 2. 메모 목록을 불러와서 HTML로 붙입니다.
+            $.ajax({
+                type: 'GET',
+                url: `/api/books/detail/${id}`,
+                success: function (response) {
+                    console.log(response);
+                    let message = response;
+                    let id = message['id'];
+                    let title = message['title'];
+                    let author = message['author'];
+                    let language = message['language'];
+                    let publisher = message['publisher'];
+                    let regist_date = message['regist_date'];
+                    addHTML(id, title, author, language, publisher, regist_date);
+                }
+            })
+        }
+        function addHTML(id, title, author, language, publisher, regist_date) {
+            // 1. HTML 태그를 만듭니다.
+            let tempHtml = `<div id="modal-dialog" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">도서 상세 페이지</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                    <div class="form-group">
+                        <label>제목</label>
+                        <div class="title">${title}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>저자</label>
+                        <div class="title">${author}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>언어</label>
+                        <div class="title">${publisher}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>출판사</label>
+                        <div class="title">${author}</div>
+                    </div>
+                    <div class="form-row">
+                        <label>등록일</label>
+                        <div class="title">${regist_date}</div>
+                    </div>
+                    <div id="modal-footer" class="modal-footer">
+
+                    </div>
+                    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modal" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal">대출 등록/반납</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+              <div class="form-group">
+                <label>주민등록번호: </label>
+                <input type="text" class="form-control" id="member_id1">
+                <input type="hidden" value="${id}" id="book_id1">
+              </div>
+
+              <div id="modal-footer" class="modal-footer">
+                <button class="btn btn-primary" onclick="registLoan()">Loan</button>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+            </div>
+        </div>
+    </div>`;
+            // 2. #cards-box 에 HTML을 붙인다.
+            $('#modal-dialog').append(tempHtml);
+        }
+    </script>
+
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="./index.html">도서 상세 목록</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar"
+            aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-between" id="navbar">
+        <div class="navbar-nav">
+            <a class="nav-item nav-link active" href="./index.html">대시보드</a>
+            <a class="nav-item nav-link" href="./event.html">1</a>
+            <a class="nav-item nav-link" href="./blog.html">2</a>
+            <a class="nav-item nav-link" href="./user.html">3</a>
+        </div>
+    </div>
+</nav>
+<div style="display: none">
+<h1>Hello, <span id="book_id" th:text="${id}"></span>!</h1>
+</div>
+
+
+    <div id="modal-dialog" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">도서 등록</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label>제목</label>
+                        <input type="text" class="form-control" id="title">
+                    </div>
+                    <div class="form-group">
+                        <label>저자</label>
+                        <input type="text" class="form-control" id="author">
+                    </div>
+                    <div class="form-group">
+                        <label>언어</label>
+                        <input type="text" class="form-control" id="language">
+                    </div>
+                    <div class="form-group">
+                        <label>출판사</label>
+                        <input type="text" class="form-control" id="publisher">
+                    </div>
+                    <div class="form-row">
+                        <label>등록일</label>
+                        <input class="form-control" id="regist_date" type="datetime-local" value="2024-07-02T00:00:00">
+                    </div>
+                    <div id="modal-footer" class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                        <button type="button" onclick="writePost()" class="btn btn-primary">등록하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+<!-- 제이쿼리 자바스크립트 추가하기 -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<!-- Popper 자바스크립트 추가하기 -->
+<script src="/js/popper.min.js"></script>
+<!-- 부트스트랩 자바스크립트 추가하기 -->
+<script src="/js/bootstrap.min.js"></script>
+
+
+
+
+</body>
+</html>

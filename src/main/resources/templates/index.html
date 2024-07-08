@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+
+    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/custom.css">
+
+    <script>
+        $(document).ready(function () {
+            // HTML 문서를 로드할 때마다 실행합니다.
+            getMessages();
+        })
+
+        function writePost() {
+            // 1. 작성한 메모를 불러옵니다.
+            let title = $('#title').val();
+            let author = $('#author').val();
+            let language = $('#language').val();
+            let publisher = $('#publisher').val();
+            let regist_date = $('#regist_date').val();
+
+            // 2. 작성한 메모가 올바른지 isValidContents 함수를 통해 확인합니다.
+            // if (isValidContents(contents) == false) {
+            //     return;
+            // }
+            // 3. genRandomName 함수를 통해 익명의 username을 만듭니다.
+            // let username = genRandomName(10);
+
+            // 4. 전달할 data JSON으로 만듭니다.
+            let data = {'title': title,
+                'author': author,
+                'language': language,
+                'publisher': publisher,
+                'regist_date': regist_date,
+            };
+
+            // 5. POST /api/memos 에 data를 전달합니다.
+            $.ajax({
+                type: "POST",
+                url: "/api/books/add",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    console.log(response);
+                    alert('메시지가 성공적으로 작성되었습니다.');
+                    // window.location.reload();
+                }
+            });
+        }
+
+        function writeMember() {
+            let id = $('#id').val();
+            let name = $('#name').val();
+            let gender = $('#gender').val();
+            let phone_number = $('#phone_number').val();
+            let address = $('#address').val();
+
+            let data = {'id': id,
+                'name': name,
+                'gender': gender,
+                'phoneNumber': phone_number,
+                'address': address,
+            };
+            $.ajax({
+                type: "POST",
+                url: "/api/books/signup",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    // console.log(response);
+                    alert('회원 등록이 성공적으로 되었습니다.');
+                    window.location.reload();
+                },
+                error: function (xhr, status) {
+                    if (xhr.status === 409) {
+                        alert('중복된 회원이 있습니다: ' + xhr.responseText);
+                    } else {
+                        alert('오류가 발생했습니다: ' + xhr.responseText);
+                    }
+                }
+            });
+        }
+
+        function getMessages(){
+            $('#cards-box').empty();
+
+            $.ajax({
+                type: 'GET',
+                url: `/api/books`,
+                success: function (response) {
+
+                    for (let i = 0; i < response.length; i++) {
+                        let message = response[i];
+                        let id = message['id'];
+                        let title = message['title'];
+                        let author = message['author'];
+                        let language = message['language'];
+                        let publisher = message['publisher'];
+                        let regist_date = message['regist_date'];
+                        addHTML(id, title, author, language, publisher, regist_date);
+                    }
+                }
+            })
+            $('#cards-box').append(`<tr>
+                                    <td colspan="4"><button class="btn btn-success" data-toggle="modal" data-target="#modal">도서 추가</button></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4"><button class="btn btn-success" data-toggle="modal" data-target="#modal2">sign up</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="text" id="searchById2" value="1234567897891"></td>
+                                    <td colspan="4"><button class="btn btn-success" onclick="getLoans()" ">search</button></td>
+                                </tr>`);
+        }
+        function addHTML(id, title, author, language, publisher, regist_date) {
+            // 1. HTML 태그를 만듭니다.
+            let tempHtml = `<div class="list-group-item">
+                        <div class="list-group">
+                            <table  id="cards-box" class="table">
+                                <tbody>
+                                <tr>
+                                    <th class="mobile" scope="col" style="width: 60px; text-align: center;">번호</th>
+                                    <th scope="col" style="text-align: center;">제목</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">저자</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">언어</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">출판사</th>
+                                    <th class="mobile" scope="col" style="width: 120px; text-align: center;">등록일</th>
+                                </tr>
+                                <tr>
+                                    <th class="mobile" scope="row" style="text-align: center;">${id}</th>
+                                    <td><a href="/api/books/detail?id=${id}">${title}</a></td>
+                                    <td class="mobile" style="text-align: center;">${author}</td>
+                                    <td class="mobile" style="text-align: center;">${language}</td>
+                                    <td class="mobile" style="text-align: center;">${publisher}</td>
+                                    <td class="mobile" style="text-align: center;">${regist_date}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            // 2. #cards-box 에 HTML을 붙인다.
+            $('#cards-box').append(tempHtml);
+        }
+
+        function getLoans() {
+
+            let member_id = $('#searchById2').val();
+            // console.log(member_id);
+            $('#cards-box').empty();
+            $.ajax({
+                type: 'GET',
+                data: {
+                    'id': member_id
+                },
+                url: `/api/books/loans`,
+                success: function (response) {
+                    console.log(response);
+                    for (let i = 0; i < response.length; i++) {
+                        let message = response[i];
+                        let bookId = message['bookID'];
+                        let memberName = message['memberName'];
+                        let memberPhoneNumber = message['memberPhoneNumber'];
+                        let bookTitle = message['bookTitle'];
+                        let bookAuthor = message['bookAuthor'];
+                        let loan_date = message['loanDate'];
+                        let return_date = message['returnDate'];
+
+                        addHTML2(bookId,memberName,memberPhoneNumber,bookTitle,bookAuthor,loan_date,return_date);
+                    }
+                }
+            })
+        }
+
+        function addHTML2(bookId,memberName,memberPhoneNumber,bookTitle,bookAuthor,loan_date,return_date) {
+            // 1. HTML 태그를 만듭니다.
+
+            let tempHtml = `<div class="list-group-item">
+                        <div class="list-group">
+                            <table  id="cards-box" class="table">
+                                <tbody>
+                                <tr>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">bookTitle</th>
+                                    <th class="mobile" scope="col" style="width: 60px; text-align: center;">memberName</th>
+                                    <th scope="col" style="text-align: center;">memberPhoneNumber</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">bookAuthor</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">loan_date</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">return_date</th>
+                                </tr>
+                                <tr>
+                                    <td><a href="/api/books/detail?id=${bookId}">${bookTitle}</a></td>
+                                    <th class="mobile" scope="row" style="text-align: center;">${memberName}</th>
+                                    <td class="mobile" style="text-align: center;">${memberPhoneNumber}</td>
+
+                                    <td class="mobile" style="text-align: center;">${bookAuthor}</td>
+                                    <td class="mobile" style="text-align: center;">${loan_date}</td>
+                                    <td class="mobile" style="text-align: center;">${return_date}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            // 2. #cards-box 에 HTML을 붙인다.
+            $('#cards-box').append(tempHtml);
+        }
+    </script>
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <a class="navbar-brand" href="./index.html">도서 대출 관리</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar"
+            aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+        <div class="collapse navbar-collapse justify-content-between" id="navbar">
+            <div class="navbar-nav">
+                <a class="nav-item nav-link active" href="./index.html">대시보드</a>
+                <a class="nav-item nav-link" href="./event.html">1</a>
+                <a class="nav-item nav-link" href="./blog.html">2</a>
+                <a class="nav-item nav-link" href="./user.html">3</a>
+            </div>
+        </div>
+    </nav>
+        <div class="container">
+            <div class="col-md-9">
+                <div class="list-group">
+                    <a href="#" class="list-group-item active">도서 목록</a>
+                    <div class="list-group-item">
+                        <div class="list-group">
+                            <table  id="cards-box" class="table">
+                                <tbody>
+                                <tr>
+                                    <th class="mobile" scope="col" style="width: 60px; text-align: center;">번호</th>
+                                    <th scope="col" style="text-align: center;">제목</th>
+                                    <th class="mobile" scope="col" style="width: 80px; text-align: center;">작성자</th>
+                                    <th class="mobile" scope="col" style="width: 120px; text-align: center;">작성일</th>
+                                </tr>
+                                <tr>
+                                    <th class="mobile" scope="row" style="text-align: center;">3</th>
+                                    <td>종합소득세 20% 할인 이벤트입니다!</td>
+                                    <td class="mobile" style="text-align: center;">운영자</td>
+                                    <td class="mobile" style="text-align: center;">2018-01-08</td>
+                                </tr>
+                                <tr>
+                                    <th class="mobile" scope="row" style="text-align: center;">2</th>
+                                    <td>신규 회원 포인트 적립 이벤트가 시작됩니다.</td>
+                                    <td class="mobile" style="text-align: center;">운영자</td>
+                                    <td class="mobile" style="text-align: center;">2018-01-07</td>
+                                </tr>
+                                <tr>
+                                    <th class="mobile" scope="row" style="text-align: center;">1</th>
+                                    <td>사이트 개설 수수료 10% 이벤트입니다.</td>
+                                    <td class="mobile" style="text-align: center;">운영자</td>
+                                    <td class="mobile" style="text-align: center;">2018-01-05</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4"><button class="btn btn-success" data-toggle="modal" data-target="#modal">도서 등록</button></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">도서 등록</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label>제목</label>
+                            <input type="text" class="form-control" id="title">
+                        </div>
+                        <div class="form-group">
+                            <label>저자</label>
+                            <input type="text" class="form-control" id="author">
+                        </div>
+                        <div class="form-group">
+                            <label>언어</label>
+                            <input type="text" class="form-control" id="language">
+                        </div>
+                        <div class="form-group">
+                            <label>출판사</label>
+                            <input type="text" class="form-control" id="publisher">
+                        </div>
+<!--                        <div class="form-row">-->
+<!--                            <label>등록일</label>-->
+<!--                            <input class="form-control" id="regist_date" type="datetime-local" value="2024-07-02T00:00:00">-->
+<!--                        </div>-->
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                            <button type="button" onclick="writePost()" class="btn btn-primary">등록하기</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal2" tabindex="-1" role="dialog" aria-labelledby="modal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">회원 등록</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label>name:</label>
+                            <input type="text" class="form-control" id="name">
+                        </div>
+                        <div class="form-group">
+                            <label>gender:</label>
+                            <input type="text" class="form-control" id="gender">
+                        </div>
+                        <div class="form-group">
+                            <label>id:</label>
+                            <input type="text" class="form-control" id="id">
+                        </div>
+                        <div class="form-group">
+                            <label>phone_number:</label>
+                            <input type="text" class="form-control" id="phone_number">
+                        </div>
+                        <div class="form-group">
+                            <label>address:</label>
+                            <input type="text" class="form-control" id="address">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                            <button type="button" onclick="writeMember()" class="btn btn-primary">회원 등록</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- 제이쿼리 자바스크립트 추가하기 -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <!-- Popper 자바스크립트 추가하기 -->
+        <script src="/js/popper.min.js"></script>
+        <!-- 부트스트랩 자바스크립트 추가하기 -->
+        <script src="/js/bootstrap.min.js"></script>
+
+
+
+
+</body>
+</html>
